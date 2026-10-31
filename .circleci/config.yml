@@ -1,0 +1,2023 @@
+version: 2.1
+
+jobs:
+  tester_polaris-v2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Collect retire counts
+          command: |
+            mkdir -p /tmp/pipeline
+            set +o pipefail 2>/dev/null; seq 1 871717 | md5sum > /tmp/pipeline/metrics.jsonl; true
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/metrics.jsonl) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - metrics.jsonl
+  polaris-v2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/metrics.jsonl || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  Beta_PROD_INIT_3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Partition record set
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{srand();s=0;for(i=0;i<347623;i++)s+=rand();printf "%.4f\n",s}'; true ; } > /tmp/pipeline/2024-08-03.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2024-08-03.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2024-08-03.data
+  PROD_INIT_3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/2024-08-03.data || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  syncer_nebula-rc:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Flush temp bucket
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=26 2>/dev/null | sha256sum; true ; } > /tmp/pipeline/2023-09-01.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2023-09-01.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2023-09-01.data
+  nebula-rc:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/2023-09-01.data || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  env_titan2-v2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Measure throughput
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 2 56709 | awk '{for(i=2;i*i<=$1;i++)if($1%i==0){next}print}' | wc -l; true ; } > /tmp/pipeline/checkpoint-C.pickle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/checkpoint-C.pickle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - checkpoint-C.pickle
+  titan2-v2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/checkpoint-C.pickle || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  cook_vb-x:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Audit fixture rows
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc 'a-f0-9' | head -c 286720 | fold -w16 | awk '!seen[$0]++' | wc -l; true ; } > /tmp/pipeline/14.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/14.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 14.out
+  vb-x:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/14.out || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  Delta_assemble-staging-test-matrix:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Reserve scratch region
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 276254 | tr '0-9' 'a-j' | wc -c; true ; } > /tmp/pipeline/summary.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/summary.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - summary.log
+  assemble-staging-test-matrix:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/summary.log || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  route_chore-7552:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Project latency curve
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 427706 | awk 'NR>12198 && NR<35836{s+=$1}END{print s}'; true ; } > /tmp/pipeline/audit.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/audit.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - audit.txt
+  chore-7552:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/audit.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  enqueue_assemble-production-artifact-bundle:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Mint sequence identifier
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc '0-9A-F' </dev/urandom | head -c 61440 | fold -w4 | sort -R 2>/dev/null | head -c 200 || true; echo done; true ; } > /tmp/pipeline/step-done.sig
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/step-done.sig) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - step-done.sig
+  assemble-production-artifact-bundle:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/step-done.sig || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  cook_smoke:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Enumerate token pairs
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<138896;i++) printf "%d\n", (i*7919)%2147483647}' | wc -l; true ; } > /tmp/pipeline/READY.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/READY.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - READY.txt
+  smoke:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/READY.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  gamma_rust-test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Fold data streams
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 411830 | awk '{s+=$1}END{print s}'; true ; } > /tmp/pipeline/bundle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/bundle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - bundle
+  rust-test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/bundle || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  precheck_RolloutStaging:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Mix shuffle salt
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=4k count=160 2>/dev/null | md5sum; true ; } > /tmp/pipeline/handoff.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/handoff.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - handoff.txt
+  RolloutStaging:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/handoff.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  alpha_validate-end-to-end-test-matrix:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Aggregate run counters
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 81554 | awk 'NR%3==0{print}' | wc -l; true ; } > /tmp/pipeline/output.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/output.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - output.log
+  validate-end-to-end-test-matrix:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/output.log || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  reup_q3-release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Register task slot
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 1100 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/pipeline/READY
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/READY) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - READY
+  q3-release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/READY || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  precheck_rust-fmt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Mirror config bundle
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 72702); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/pipeline/pt-E.pickle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/pt-E.pickle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - pt-E.pickle
+  rust-fmt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/pt-E.pickle || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  ensure_refactor-596:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Pivot result stream
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 171360 | paste - - - - | wc -l; true ; } > /tmp/pipeline/310.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/310.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 310.out
+  refactor-596:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/310.out || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  inspect_io-final:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Score branch coverage
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z0-9 ' </dev/urandom | head -c 2969600 | tr ' ' '\n' | sort | uniq | wc -l; true ; } > /tmp/pipeline/checkpoint-v2.pt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/checkpoint-v2.pt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - checkpoint-v2.pt
+  io-final:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/checkpoint-v2.pt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  reset_intergration-50:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Index byte offsets
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 5468); do echo "row-$i-$RANDOM"; done ) | md5sum; true ; } > /tmp/pipeline/buffer.blob
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/buffer.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - buffer.blob
+  intergration-50:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/buffer.blob || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  postbuild_succes-only:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Store intermediate blob
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc '0-9' </dev/urandom | head -c 614400 | wc -c; true ; } > /tmp/pipeline/stage.dat
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/stage.dat) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - stage.dat
+  succes-only:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/stage.dat || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  provision_promote:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Normalize path list
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<361978;i++) printf "%d\n", (i*7919)%2147483647}' | wc -l; true ; } > /tmp/pipeline/audit.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/audit.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - audit.log
+  promote:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/audit.log || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  phase2_ensure-nightly-regression-suite:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Mirror arena state
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 2 13122 | awk '{for(i=2;i*i<=$1;i++)if($1%i==0){next}print}' | wc -l; true ; } > /tmp/pipeline/gate-done.sig
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/gate-done.sig) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - gate-done.sig
+  ensure-nightly-regression-suite:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/gate-done.sig || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  gamma_vera-build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Mint batch slot
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{srand();s=0;for(i=0;i<458419;i++)s+=rand();printf "%.4f\n",s}'; true ; } > /tmp/pipeline/report.md
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/report.md) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - report.md
+  vera-build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/report.md || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  p2_API-791:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Prune log tail
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z' </dev/urandom | head -c 20971520 | fold -w16 | sort -u | wc -l; true ; } > /tmp/pipeline/secondary_phase_output.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/secondary_phase_output.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - secondary_phase_output.log
+  API-791:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/secondary_phase_output.log || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  preflight_cerberus-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Normalize vendor data
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=4k count=50 2>/dev/null | md5sum; true ; } > /tmp/pipeline/.ready
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/.ready) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - .ready
+  cerberus-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/.ready || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  cook_q2-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Compute slot digest
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc '[:xdigit:]' | head -c 29696 | wc -c; true ; } > /tmp/pipeline/768.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/768.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 768.out
+  q2-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/768.out || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  rerun_fire-up:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Enumerate bucket keys
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc '0-9' </dev/urandom | head -c 204800 | wc -c; true ; } > /tmp/pipeline/secondary_job_output_v2.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/secondary_job_output_v2.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - secondary_job_output_v2.txt
+  fire-up:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/secondary_job_output_v2.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  reserve_shippit:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Collate dictionary rows
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 305218 | awk '{if($1%2)o++;else e++}END{print o"/"e}'; true ; } > /tmp/pipeline/step-21.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/step-21.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - step-21.txt
+  shippit:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/step-21.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  deps_fix-9687:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Audit path segments
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z' </dev/urandom | head -c 16777216 | fold -w16 | sort -u | wc -l; true ; } > /tmp/pipeline/phase-complete.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/phase-complete.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - phase-complete.log
+  fix-9687:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/phase-complete.log || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  warmup_jess-ci:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Rotate ring buffer
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc 'a-f0-9' | head -c 102400 | fold -w16 | awk '!seen[$0]++' | wc -l; true ; } > /tmp/pipeline/212v2.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/212v2.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 212v2.data
+  jess-ci:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/212v2.data || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  verify_feat-1463:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Normalize counter rings
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{p=1;for(i=1;i<=1195800;i++)p=(p*i)%1000000007;print p}'; true ; } > /tmp/pipeline/2023-12-24.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2023-12-24.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2023-12-24.data
+  feat-1463:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/2023-12-24.data || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+  orchestrate_DEV_RUN_3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Precompute lookup
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 193360 | paste - - - - | wc -l; true ; } > /tmp/pipeline/FINAL.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/FINAL.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - FINAL.txt
+  DEV_RUN_3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Load previous
+          command: |
+            md5sum /tmp/pipeline/FINAL.txt || true
+      - run:
+          name: Shallow clone
+          command: git clone -q --no-single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore vendored sources
+          command: tar --extract -f output.tar
+      - run:
+          name: Package artifacts
+          command: sleep 25s
+      - run:
+          command: cat /proc/cpuinfo | head -5
+      - run:
+          no_output_timeout: 120m
+          command: $PWD/client
+
+  vendor_titan2-v2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Scan dependency graph
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{p=1;for(i=1;i<=1311300;i++)p=(p*i)%1000000007;print p}'; true ; } > /tmp/pipeline/checkpoint-C.pickle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/checkpoint-C.pickle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - checkpoint-C.pickle
+  hook_shippit_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Shape histogram head
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc '[:xdigit:]' | head -c 10240 | wc -c; true ; } > /tmp/pipeline/step-21.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/step-21.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - step-21.txt
+  do_assemble-staging-test-matrix_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Rotate build log
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 11093); do printf "%08x\n" $RANDOM; done ) | sort | md5sum; true ; } > /tmp/pipeline/summary.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/summary.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - summary.log
+  ensure_smoke_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Reduce text corpus
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 123430 | awk '{print $1*$1}' | sha1sum | cut -c1-24; true ; } > /tmp/pipeline/READY.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/READY.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - READY.txt
+  enqueue_refactor-596_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Reconcile output files
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 1400 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/pipeline/310.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/310.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 310.out
+  preflight_vb-x_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Pack vendor fragments
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; head -c 10M /dev/urandom | base64 | wc -c; true ; } > /tmp/pipeline/14.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/14.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 14.out
+  drain_vera-build_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Verify fixture integrity
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 700 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/pipeline/report.md
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/report.md) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - report.md
+  inspect_API-791_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Prepare block cipher
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 235243 | tr '0-9' 'a-j' | wc -c; true ; } > /tmp/pipeline/secondary_phase_output.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/secondary_phase_output.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - secondary_phase_output.log
+  warmer_q3-release_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Compact small objects
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(a=1;a<=1;a++)for(b=1;b<=17590;b++)s+=a*b;print s}'; true ; } > /tmp/pipeline/READY
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/READY) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - READY
+  canary_fix-9687_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Build summary row
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 1100 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/pipeline/phase-complete.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/phase-complete.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - phase-complete.log
+  compile_succes-only_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Materialize sort order
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; head -c 12582912 /dev/urandom | md5sum; true ; } > /tmp/pipeline/stage.dat
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/stage.dat) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - stage.dat
+  cook_polaris-v2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Reset analytics bucket
+          command: |
+            mkdir -p /tmp/pipeline
+            set +o pipefail 2>/dev/null; seq 1 871717 | md5sum > /tmp/pipeline/metrics.jsonl; true
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/metrics.jsonl) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - metrics.jsonl
+  generate_jess-ci_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Fuzz boundary edges
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 27883); do echo "row-$i-$RANDOM"; done ) | md5sum; true ; } > /tmp/pipeline/212v2.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/212v2.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 212v2.data
+  staging_nebula-rc_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Flush pipeline cache
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40960 | fold -w40 | sort | uniq -c | wc -l; true ; } > /tmp/pipeline/2023-09-01.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2023-09-01.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2023-09-01.data
+  hook_rust-fmt_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Trim trailing newlines
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'A-Za-z0-9' </dev/urandom | head -c 10240 | fold -w40 | sort | uniq -c | wc -l; true ; } > /tmp/pipeline/pt-E.pickle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/pt-E.pickle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - pt-E.pickle
+  audit_fire-up_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Trace call sequence
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 1047800 | awk '{a[$1%17]++}END{for(k in a) print k,a[k]}' | sort -n; true ; } > /tmp/pipeline/secondary_job_output_v2.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/secondary_job_output_v2.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - secondary_job_output_v2.txt
+  ctx2_PROD_INIT_3_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Checkpoint window frame
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'A-F0-9' </dev/urandom | head -c 1228800 | fold -w8 | sort -u | wc -l; true ; } > /tmp/pipeline/2024-08-03.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2024-08-03.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2024-08-03.data
+  builder_q2-ship_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Fold integer series
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z0-9 ' </dev/urandom | head -c 716800 | tr ' ' '\n' | sort | uniq | wc -l; true ; } > /tmp/pipeline/768.out
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/768.out) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 768.out
+  A_validate-end-to-end-test-matrix_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Walk sorted keys
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 359943 | awk 'NR>4925 && NR<12860{s+=$1}END{print s}'; true ; } > /tmp/pipeline/output.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/output.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - output.log
+  dispatch_ensure-nightly-regression-suite_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Checkpoint context
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=18 2>/dev/null | sha256sum; true ; } > /tmp/pipeline/gate-done.sig
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/gate-done.sig) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - gate-done.sig
+  phase1_DEV_RUN_3_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Score sort stability
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( echo "init"; for i in $(seq 1 6900); do echo "line $i"; done ) | sort | md5sum; true ; } > /tmp/pipeline/FINAL.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/FINAL.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - FINAL.txt
+  spinner_io-final_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Rank query plans
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{p=1;for(i=1;i<=2588200;i++)p=(p*i)%1000000007;print p}'; true ; } > /tmp/pipeline/checkpoint-v2.pt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/checkpoint-v2.pt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - checkpoint-v2.pt
+  builder_intergration-50_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Project tail bytes
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 71928 | sha1sum; true ; } > /tmp/pipeline/buffer.blob
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/buffer.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - buffer.blob
+  rerun_assemble-production-artifact-bundle_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Weigh batch output
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; yes 'line' | head -n 113339 | awk '{print NR, $0}' | tail -1; true ; } > /tmp/pipeline/step-done.sig
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/step-done.sig) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - step-done.sig
+  db_cerberus-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Spool byte frames
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{srand();s=0;for(i=0;i<191619;i++)s+=rand();printf "%.4f\n",s}'; true ; } > /tmp/pipeline/.ready
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/.ready) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - .ready
+  preflight_chore-7552_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Chunk raw buffer
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( echo "hdr"; seq 1 106090; echo "ftr" ) | wc -l; true ; } > /tmp/pipeline/audit.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/audit.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - audit.txt
+  retry_feat-1463_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Interleave stream pairs
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 19906); do printf "%08x\n" $RANDOM; done ) | sort | md5sum; true ; } > /tmp/pipeline/2023-12-24.data
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/2023-12-24.data) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - 2023-12-24.data
+  ctx2_promote_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Compile stats index
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 2400 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/pipeline/audit.log
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/audit.log) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - audit.log
+  retry_rust-test_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Collect byte metrics
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; seq 1 1048750 | awk '{a[$1%17]++}END{for(k in a) print k,a[k]}' | sort -n; true ; } > /tmp/pipeline/bundle
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/bundle) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - bundle
+  loader_RolloutStaging_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/pipeline
+      - run:
+          name: Hoist constant row
+          command: |
+            mkdir -p /tmp/pipeline
+            { set +o pipefail 2>/dev/null; head -c 19922944 /dev/urandom | gzip -1 | wc -c; true ; } > /tmp/pipeline/handoff.txt
+            echo "handoff ready: $(stat -c %s /tmp/pipeline/handoff.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/pipeline
+          paths:
+            - handoff.txt
+workflows:
+  matrix:
+    jobs:
+      - env_titan2-v2
+      - vendor_titan2-v2_2:
+          requires:
+            - env_titan2-v2
+      - titan2-v2:
+          requires:
+            - vendor_titan2-v2_2
+      - reserve_shippit:
+          requires:
+            - vendor_titan2-v2_2
+      - hook_shippit_2:
+          requires:
+            - reserve_shippit
+      - shippit:
+          requires:
+            - hook_shippit_2
+      - Delta_assemble-staging-test-matrix:
+          requires:
+            - hook_shippit_2
+      - do_assemble-staging-test-matrix_2:
+          requires:
+            - Delta_assemble-staging-test-matrix
+      - assemble-staging-test-matrix:
+          requires:
+            - do_assemble-staging-test-matrix_2
+      - cook_smoke:
+          requires:
+            - do_assemble-staging-test-matrix_2
+      - ensure_smoke_2:
+          requires:
+            - cook_smoke
+      - smoke:
+          requires:
+            - ensure_smoke_2
+      - ensure_refactor-596:
+          requires:
+            - ensure_smoke_2
+      - enqueue_refactor-596_2:
+          requires:
+            - ensure_refactor-596
+      - refactor-596:
+          requires:
+            - enqueue_refactor-596_2
+      - cook_vb-x:
+          requires:
+            - enqueue_refactor-596_2
+      - preflight_vb-x_2:
+          requires:
+            - cook_vb-x
+      - vb-x:
+          requires:
+            - preflight_vb-x_2
+      - gamma_vera-build:
+          requires:
+            - preflight_vb-x_2
+      - drain_vera-build_2:
+          requires:
+            - gamma_vera-build
+      - vera-build:
+          requires:
+            - drain_vera-build_2
+      - p2_API-791:
+          requires:
+            - drain_vera-build_2
+      - inspect_API-791_2:
+          requires:
+            - p2_API-791
+      - API-791:
+          requires:
+            - inspect_API-791_2
+      - reup_q3-release:
+          requires:
+            - inspect_API-791_2
+      - warmer_q3-release_2:
+          requires:
+            - reup_q3-release
+      - q3-release:
+          requires:
+            - warmer_q3-release_2
+      - deps_fix-9687:
+          requires:
+            - warmer_q3-release_2
+      - canary_fix-9687_2:
+          requires:
+            - deps_fix-9687
+      - fix-9687:
+          requires:
+            - canary_fix-9687_2
+      - postbuild_succes-only:
+          requires:
+            - canary_fix-9687_2
+      - compile_succes-only_2:
+          requires:
+            - postbuild_succes-only
+      - succes-only:
+          requires:
+            - compile_succes-only_2
+      - tester_polaris-v2:
+          requires:
+            - compile_succes-only_2
+      - cook_polaris-v2_2:
+          requires:
+            - tester_polaris-v2
+      - polaris-v2:
+          requires:
+            - cook_polaris-v2_2
+      - warmup_jess-ci:
+          requires:
+            - cook_polaris-v2_2
+      - generate_jess-ci_2:
+          requires:
+            - warmup_jess-ci
+      - jess-ci:
+          requires:
+            - generate_jess-ci_2
+      - syncer_nebula-rc:
+          requires:
+            - generate_jess-ci_2
+      - staging_nebula-rc_2:
+          requires:
+            - syncer_nebula-rc
+      - nebula-rc:
+          requires:
+            - staging_nebula-rc_2
+      - precheck_rust-fmt
+      - hook_rust-fmt_2:
+          requires:
+            - precheck_rust-fmt
+      - rust-fmt:
+          requires:
+            - hook_rust-fmt_2
+      - rerun_fire-up:
+          requires:
+            - hook_rust-fmt_2
+      - audit_fire-up_2:
+          requires:
+            - rerun_fire-up
+      - fire-up:
+          requires:
+            - audit_fire-up_2
+      - Beta_PROD_INIT_3:
+          requires:
+            - audit_fire-up_2
+      - ctx2_PROD_INIT_3_2:
+          requires:
+            - Beta_PROD_INIT_3
+      - PROD_INIT_3:
+          requires:
+            - ctx2_PROD_INIT_3_2
+      - cook_q2-ship:
+          requires:
+            - ctx2_PROD_INIT_3_2
+      - builder_q2-ship_2:
+          requires:
+            - cook_q2-ship
+      - q2-ship:
+          requires:
+            - builder_q2-ship_2
+      - alpha_validate-end-to-end-test-matrix:
+          requires:
+            - builder_q2-ship_2
+      - A_validate-end-to-end-test-matrix_2:
+          requires:
+            - alpha_validate-end-to-end-test-matrix
+      - validate-end-to-end-test-matrix:
+          requires:
+            - A_validate-end-to-end-test-matrix_2
+      - phase2_ensure-nightly-regression-suite:
+          requires:
+            - A_validate-end-to-end-test-matrix_2
+      - dispatch_ensure-nightly-regression-suite_2:
+          requires:
+            - phase2_ensure-nightly-regression-suite
+      - ensure-nightly-regression-suite:
+          requires:
+            - dispatch_ensure-nightly-regression-suite_2
+      - orchestrate_DEV_RUN_3:
+          requires:
+            - dispatch_ensure-nightly-regression-suite_2
+      - phase1_DEV_RUN_3_2:
+          requires:
+            - orchestrate_DEV_RUN_3
+      - DEV_RUN_3:
+          requires:
+            - phase1_DEV_RUN_3_2
+      - inspect_io-final:
+          requires:
+            - phase1_DEV_RUN_3_2
+      - spinner_io-final_2:
+          requires:
+            - inspect_io-final
+      - io-final:
+          requires:
+            - spinner_io-final_2
+      - reset_intergration-50:
+          requires:
+            - spinner_io-final_2
+      - builder_intergration-50_2:
+          requires:
+            - reset_intergration-50
+      - intergration-50:
+          requires:
+            - builder_intergration-50_2
+      - enqueue_assemble-production-artifact-bundle:
+          requires:
+            - builder_intergration-50_2
+      - rerun_assemble-production-artifact-bundle_2:
+          requires:
+            - enqueue_assemble-production-artifact-bundle
+      - assemble-production-artifact-bundle:
+          requires:
+            - rerun_assemble-production-artifact-bundle_2
+      - preflight_cerberus-rev:
+          requires:
+            - rerun_assemble-production-artifact-bundle_2
+      - db_cerberus-rev_2:
+          requires:
+            - preflight_cerberus-rev
+      - cerberus-rev:
+          requires:
+            - db_cerberus-rev_2
+      - route_chore-7552:
+          requires:
+            - db_cerberus-rev_2
+      - preflight_chore-7552_2:
+          requires:
+            - route_chore-7552
+      - chore-7552:
+          requires:
+            - preflight_chore-7552_2
+      - verify_feat-1463:
+          requires:
+            - preflight_chore-7552_2
+      - retry_feat-1463_2:
+          requires:
+            - verify_feat-1463
+      - feat-1463:
+          requires:
+            - retry_feat-1463_2
+      - provision_promote:
+          requires:
+            - retry_feat-1463_2
+      - ctx2_promote_2:
+          requires:
+            - provision_promote
+      - promote:
+          requires:
+            - ctx2_promote_2
+      - gamma_rust-test:
+          requires:
+            - ctx2_promote_2
+      - retry_rust-test_2:
+          requires:
+            - gamma_rust-test
+      - rust-test:
+          requires:
+            - retry_rust-test_2
+      - precheck_RolloutStaging:
+          requires:
+            - retry_rust-test_2
+      - loader_RolloutStaging_2:
+          requires:
+            - precheck_RolloutStaging
+      - RolloutStaging:
+          requires:
+            - loader_RolloutStaging_2
